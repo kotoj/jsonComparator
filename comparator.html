@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Comparator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .textarea-container {
+            margin-bottom: 10px;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            margin-bottom: 10px;
+        }
+        .result {
+            white-space: pre-wrap;
+            padding: 10px;
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+        }
+        .added { background-color: lightgreen; }
+        .removed { background-color: lightcoral; }
+        .changed { background-color: lightgrey; }
+        button {
+            margin-right: 10px;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>JSON Comparator</h2>
+    <div id="textAreas">
+        <div class="textarea-container">
+            <textarea id="json1" placeholder="Paste JSON here"></textarea>
+        </div>
+        <div class="textarea-container">
+            <textarea id="json2" placeholder="Paste JSON here"></textarea>
+        </div>
+    </div>
+
+    <button onclick="addTextArea()">Add</button>
+    <button onclick="compareJSON()">Compare</button>
+
+    <h3>Results:</h3>
+    <div id="result" class="result"></div>
+
+    <script>
+        let textAreaCount = 2;
+
+        function addTextArea() {
+            textAreaCount++;
+            const container = document.createElement('div');
+            container.classList.add('textarea-container');
+            container.innerHTML = `<textarea id="json${textAreaCount}" placeholder="Paste JSON here"></textarea>`;
+            document.getElementById('textAreas').appendChild(container);
+        }
+
+        function compareJSON() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = ''; // Clear previous result
+
+            for (let i = 1; i < textAreaCount; i++) {
+                const json1 = document.getElementById(`json${i}`).value;
+                const json2 = document.getElementById(`json${i + 1}`).value;
+
+                if (json1 && json2) {
+                    try {
+                        const obj1 = JSON.parse(json1);
+                        const obj2 = JSON.parse(json2);
+
+                        const diff = diffJSON(obj1, obj2);
+                        resultDiv.innerHTML += `<strong>Comparison between JSON ${i} and JSON ${i + 1}:</strong><br>` + diff + '<br><br>';
+                    } catch (error) {
+                        resultDiv.innerHTML += `<div style="color:red;"><strong>Invalid JSON in one of the inputs!</strong></div>`;
+                    }
+                }
+            }
+        }
+
+        function diffJSON(obj1, obj2, path = '') {
+            let result = '';
+
+            // Compare keys in obj1 (check for removed and changed fields)
+            for (const key in obj1) {
+                const currentPath = path ? `${path}.${key}` : key;
+
+                if (!(key in obj2)) {
+                    result += `<div class="removed">${currentPath}: ${JSON.stringify(obj1[key])} (removed)</div>`;
+                } else if (typeof obj1[key] === 'object' && typeof obj2[key] === 'object') {
+                    // Recursively compare nested objects
+                    result += diffJSON(obj1[key], obj2[key], currentPath);
+                } else if (JSON.stringify(obj1[key]) !== JSON.stringify(obj2[key])) {
+                    result += `<div class="changed">${currentPath}: ${JSON.stringify(obj1[key])} -> ${JSON.stringify(obj2[key])} (changed)</div>`;
+                }
+            }
+
+            // Check for new fields in obj2
+            for (const key in obj2) {
+                const currentPath = path ? `${path}.${key}` : key;
+
+                if (!(key in obj1)) {
+                    result += `<div class="added">${currentPath}: ${JSON.stringify(obj2[key])} (added)</div>`;
+                }
+            }
+
+            return result;
+        }
+    </script>
+
+</body>
+</html>
